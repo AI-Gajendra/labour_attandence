@@ -1,0 +1,10 @@
+# ============================================================
+# SETUP: Copy this file to android/key.properties
+#        and fill in your real keystore credentials.
+#        Never commit the real key.properties to version control.
+# ============================================================
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=../upload-keystore.jks
