@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "214304798135",
+    "project_id": "labour-mgmt-ai-mvp-2026",
+    "storage_bucket": "labour-mgmt-ai-mvp-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:214304798135:android:2e9d0202105ce34499e432",
+        "android_client_info": {
+          "package_name": "com.ai.labour_attendance"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

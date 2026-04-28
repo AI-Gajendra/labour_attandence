@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Manrope:wght@600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-container": "#7e8395",
+                        "on-secondary-fixed-variant": "#005236",
+                        "secondary": "#006c49",
+                        "outline-variant": "#c6c6cc",
+                        "surface-bright": "#faf9f6",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "primary-container": "#151b29",
+                        "on-surface-variant": "#45464c",
+                        "on-error": "#ffffff",
+                        "outline": "#76777d",
+                        "on-secondary-fixed": "#002113",
+                        "on-primary-fixed-variant": "#414756",
+                        "surface-container-high": "#e9e8e5",
+                        "inverse-on-surface": "#f2f1ee",
+                        "tertiary": "#000000",
+                        "primary": "#000000",
+                        "error": "#ba1a1a",
+                        "background": "#faf9f6",
+                        "on-background": "#1a1c1a",
+                        "inverse-primary": "#c1c6d9",
+                        "surface-container-highest": "#e3e2df",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#2f312f",
+                        "surface": "#faf9f6",
+                        "surface-dim": "#dbdad7",
+                        "surface-container": "#efeeeb",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#001a42",
+                        "tertiary-fixed": "#d8e2ff",
+                        "surface-tint": "#585e6f",
+                        "primary-fixed-dim": "#c1c6d9",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#001a42",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-surface": "#1a1c1a",
+                        "secondary-container": "#6cf8bb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#3980f4",
+                        "on-primary-fixed": "#151b29",
+                        "surface-variant": "#e3e2df",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "surface-container-low": "#f4f3f0",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#dde2f6",
+                        "on-secondary-container": "#00714d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .tonal-layering-no-borders { border: none !important; }
+        body { font-family: 'Inter', sans-serif; background-color: #FAF9F6; }
+        .hero-gradient {
+            background: linear-gradient(180deg, #121826 0%, #151B29 100%);
+        }
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-40">
+<!-- TopAppBar -->
+<header class="bg-[#121826] dark:bg-[#121826] flex items-center justify-between px-6 pt-8 pb-4 w-full z-50">
+<div class="flex items-center gap-4">
+<button class="text-white hover:bg-white/10 transition-colors active:scale-95 duration-200 rounded-full p-2">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="font-['Manrope'] font-bold text-lg tracking-tight text-white">Worker Profile</h1>
+</div>
+<button class="text-white hover:bg-white/10 transition-colors active:scale-95 duration-200 rounded-full p-2">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</header>
+<!-- Hero Section -->
+<section class="hero-gradient px-6 pt-4 pb-12 rounded-none">
+<div class="flex items-start justify-between">
+<div class="space-y-3">
+<div class="flex items-center gap-3">
+<h2 class="font-headline font-extrabold text-3xl tracking-tight text-white">Marcus Chen</h2>
+<span class="bg-[#3980F4]/20 text-[#adc6ff] px-3 py-1 rounded-full text-xs font-semibold tracking-wide border border-[#3980F4]/30">Electrical</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-xl" style="font-variation-settings: 'FILL' 1;">payments</span>
+<p class="font-headline font-bold text-xl text-white">₹1,500/day</p>
+</div>
+</div>
+<div class="relative">
+<div class="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl">
+<img class="w-full h-full object-cover" data-alt="Professional portrait of a skilled electrical worker with a confident expression in neutral lighting and studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAY1L2ARmS_8mfO5RCf83WMS5TMPE_dvW9US25LKEnbMeKxBcuTLkNur0b2tVVwB9x0hhcpNDqB1vX-TKwLA882c_y_eOikLdxbexn_dWzO5tfazNDcou5CbKJb-3v1MXfnKxSzJoF3CM9pAM76m98NSBYxn_lJkLIQ4TaVNcwChNUAkEnn6qMK0uCCB-axHvrfAdL1_hWHtLN7zwmSFg4DB3HSudWlQMqd_Kwou0tFNDuGN63gLIJ2E3jSjigjwAkqkN8vmtHvZZE"/>
+</div>
+<div class="absolute -bottom-2 -right-2 bg-secondary text-white p-1 rounded-lg shadow-lg">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Main Content Canvas (Overlapping Hero) -->
+<main class="px-4 -mt-6 space-y-4">
+<!-- Attendance Card -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_8px_24px_rgba(21,27,41,0.06)] flex items-center justify-between">
+<div>
+<h3 class="text-on-surface-variant font-semibold text-sm mb-1">Attendance This Month</h3>
+<p class="text-2xl font-headline font-extrabold text-on-surface">22/26 <span class="text-on-surface-variant text-base font-normal">days</span></p>
+<div class="mt-3 flex gap-1">
+<div class="h-1.5 w-8 rounded-full bg-secondary"></div>
+<div class="h-1.5 w-8 rounded-full bg-secondary"></div>
+<div class="h-1.5 w-8 rounded-full bg-secondary"></div>
+<div class="h-1.5 w-8 rounded-full bg-surface-container-high"></div>
+</div>
+</div>
+<div class="relative w-20 h-20 flex items-center justify-center">
+<svg class="w-full h-full" viewbox="0 0 100 100">
+<circle class="text-surface-container-high stroke-current" cx="50" cy="50" fill="transparent" r="40" stroke-width="8"></circle>
+<circle class="text-secondary stroke-current progress-ring-circle" cx="50" cy="50" fill="transparent" r="40" stroke-dasharray="251.2" stroke-dashoffset="38.7" stroke-linecap="round" stroke-width="8"></circle>
+</svg>
+<span class="absolute font-bold text-sm text-secondary">85%</span>
+</div>
+</div>
+<!-- Recent Advances Bento -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_8px_24px_rgba(21,27,41,0.06)]">
+<div class="flex items-center justify-between mb-4">
+<h3 class="text-on-surface font-bold text-lg font-headline">Recent Advances</h3>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer">history</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between py-1">
+<div class="flex items-center gap-3">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">calendar_today</span>
+</div>
+<span class="text-on-surface font-medium">Oct 14</span>
+</div>
+<span class="font-headline font-bold text-on-surface">₹2,000</span>
+</div>
+<div class="flex items-center justify-between py-1">
+<div class="flex items-center gap-3">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">calendar_today</span>
+</div>
+<span class="text-on-surface font-medium">Oct 05</span>
+</div>
+<span class="font-headline font-bold text-on-surface">₹1,500</span>
+</div>
+<div class="flex items-center justify-between py-1">
+<div class="flex items-center gap-3">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">calendar_today</span>
+</div>
+<span class="text-on-surface font-medium">Sep 28</span>
+</div>
+<span class="font-headline font-bold text-on-surface">₹2,000</span>
+</div>
+</div>
+</div>
+<!-- Salary Summary Card -->
+<div class="bg-surface-container-lowest rounded-xl p-5 shadow-[0_8px_24px_rgba(21,27,41,0.06)] overflow-hidden relative">
+<div class="absolute top-0 right-0 p-4 opacity-5">
+<span class="material-symbols-outlined text-8xl" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<h3 class="text-on-surface font-bold text-lg font-headline mb-5">Salary Summary</h3>
+<div class="space-y-4 relative z-10">
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Days Worked</span>
+<span class="font-semibold text-on-surface">22</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Gross Salary</span>
+<span class="font-semibold text-on-surface">₹33,000</span>
+</div>
+<div class="flex justify-between items-center text-sm">
+<span class="text-on-surface-variant">Total Advance</span>
+<span class="font-semibold text-error">₹3,500</span>
+</div>
+<div class="pt-4 border-t border-surface-container flex justify-between items-center">
+<span class="font-bold text-on-surface">Net Balance</span>
+<span class="text-xl font-headline font-extrabold text-secondary">₹29,500</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Action Buttons Container -->
+<div class="fixed bottom-24 left-0 w-full px-4 grid grid-cols-2 gap-4 z-40">
+<button class="h-16 flex items-center justify-center gap-2 rounded-xl bg-secondary text-white font-bold shadow-lg shadow-secondary/20 active:scale-95 transition-all">
+<span class="material-symbols-outlined">how_to_reg</span>
+            Mark Attendance
+        </button>
+<button class="h-16 flex items-center justify-center gap-2 rounded-xl bg-[#F59E0B] text-white font-bold shadow-lg shadow-[#F59E0B]/20 active:scale-95 transition-all">
+<span class="material-symbols-outlined">add_circle</span>
+            Add Advance
+        </button>
+</div>
+<!-- BottomNavBar -->
+<nav class="bg-white/80 dark:bg-[#121826]/80 backdrop-blur-xl fixed bottom-0 w-full z-50 rounded-t-[1.5rem] flex justify-around items-center h-20 px-4 pb-safe shadow-[0_-8px_24px_rgba(21,27,41,0.06)]">
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#10B981] transition-all active:scale-90 duration-200">
+<span class="material-symbols-outlined">grid_view</span>
+<span class="font-['Inter'] font-medium text-[11px]">Dashboard</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#10B981] transition-all active:scale-90 duration-200">
+<span class="material-symbols-outlined">group</span>
+<span class="font-['Inter'] font-medium text-[11px]">Roster</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 hover:text-[#10B981] transition-all active:scale-90 duration-200">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-['Inter'] font-medium text-[11px]">Payroll</span>
+</div>
+<div class="flex flex-col items-center justify-center text-[#10B981] bg-[#10B981]/10 rounded-full px-4 py-1 active:scale-90 duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">account_circle</span>
+<span class="font-['Inter'] font-medium text-[11px]">Profile</span>
+</div>
+</nav>
+</body></html>

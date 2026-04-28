@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Monthly Summary - Industrial Atelier</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "error": "#ba1a1a",
+                      "background": "#faf9f6",
+                      "on-background": "#1a1c1a",
+                      "inverse-primary": "#c1c6d9",
+                      "surface-container-highest": "#e3e2df",
+                      "on-primary": "#ffffff",
+                      "inverse-surface": "#2f312f",
+                      "surface": "#faf9f6",
+                      "surface-dim": "#dbdad7",
+                      "surface-container": "#efeeeb",
+                      "on-tertiary": "#ffffff",
+                      "on-tertiary-fixed": "#001a42",
+                      "on-primary-container": "#7e8395",
+                      "on-secondary-fixed-variant": "#005236",
+                      "secondary": "#006c49",
+                      "outline-variant": "#c6c6cc",
+                      "surface-bright": "#faf9f6",
+                      "tertiary-fixed-dim": "#adc6ff",
+                      "primary-container": "#151b29",
+                      "on-surface-variant": "#45464c",
+                      "on-error": "#ffffff",
+                      "outline": "#76777d",
+                      "on-secondary-fixed": "#002113",
+                      "on-primary-fixed-variant": "#414756",
+                      "surface-container-high": "#e9e8e5",
+                      "inverse-on-surface": "#f2f1ee",
+                      "tertiary": "#000000",
+                      "primary": "#000000",
+                      "on-surface": "#1a1c1a",
+                      "secondary-container": "#6cf8bb",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-container": "#3980f4",
+                      "on-primary-fixed": "#151b29",
+                      "surface-variant": "#e3e2df",
+                      "secondary-fixed-dim": "#4edea3",
+                      "on-tertiary-fixed-variant": "#004395",
+                      "surface-container-low": "#f4f3f0",
+                      "on-secondary": "#ffffff",
+                      "primary-fixed": "#dde2f6",
+                      "on-secondary-container": "#00714d",
+                      "tertiary-fixed": "#d8e2ff",
+                      "surface-tint": "#585e6f",
+                      "primary-fixed-dim": "#c1c6d9",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#001a42",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed": "#6ffbbe"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(16px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="bg-[#121826] dark:bg-slate-950 text-white dark:text-slate-100 font-headline font-bold tracking-tight docked full-width top-0 pt-10 pb-6 px-6 shadow-2xl shadow-[#121826]/30 z-40 sticky">
+<div class="flex justify-between items-end w-full px-2 pb-4 max-w-full">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-400">menu</span>
+<h1 class="text-xl font-extrabold tracking-tight">Monthly Summary</h1>
+</div>
+<div class="h-10 w-10 rounded-full overflow-hidden border-2 border-white/20">
+<img class="h-full w-full object-cover" data-alt="Close up professional portrait of a project manager in a clean white studio setting with soft lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKuXwCajVJYF1hE0yIn7GFHT0B58WHDKoCbS9TEm68fFUSsL4Ih3zFylq9i_CCAbfsroyrr-7IHNsR2gGdqV7YeCjVm5g-cIIdS1uysmOOe6dgyyFF_e6fRLMMpU56H5V_G4fzVOelSgCZygPBe3N7-3Td-utAueM1KQEYR6HRxdlFj8HYE8BrqcXfjKbTN7vdEl4vxuGPgq_tgSVDvVBo5zNkGwGo_ZeQyfRLcmvxhXBbsoEqgHcBK-ssESU1XHL-DXQdMKWuALg"/>
+</div>
+</div>
+<!-- Month Selector Pill -->
+<div class="mt-6 flex justify-center">
+<div class="inline-flex items-center gap-6 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/5">
+<button class="hover:text-secondary transition-colors"><span class="material-symbols-outlined">chevron_left</span></button>
+<span class="text-sm font-bold tracking-widest uppercase">April 2026</span>
+<button class="hover:text-secondary transition-colors"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+</header>
+<main class="px-6 -mt-6 relative z-10 space-y-4">
+<!-- Worker Summary Cards -->
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_8px_24px_rgba(21,27,41,0.06)] p-5 border border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<h2 class="text-lg font-headline font-bold text-on-primary-fixed">Rajesh Kumar</h2>
+<span class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">Senior Mason</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Days Worked</span>
+</div>
+<p class="text-lg font-headline font-bold">22</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">payments</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Salary</span>
+</div>
+<p class="text-lg font-headline font-bold text-secondary">₹17,600</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Advance</span>
+</div>
+<p class="text-lg font-headline font-bold text-error">₹5,000</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border-l-4 border-secondary">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">balance</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Balance</span>
+</div>
+<p class="text-xl font-headline font-extrabold text-secondary">₹12,600</p>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_8px_24px_rgba(21,27,41,0.06)] p-5 border border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<h2 class="text-lg font-headline font-bold text-on-primary-fixed">Amit Sharma</h2>
+<span class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">Electrician</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Days Worked</span>
+</div>
+<p class="text-lg font-headline font-bold">25</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">payments</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Salary</span>
+</div>
+<p class="text-lg font-headline font-bold text-secondary">₹22,500</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Advance</span>
+</div>
+<p class="text-lg font-headline font-bold text-error">₹10,000</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border-l-4 border-secondary">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">balance</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Balance</span>
+</div>
+<p class="text-xl font-headline font-extrabold text-secondary">₹12,500</p>
+</div>
+</div>
+</div>
+<!-- Card 3 (Negative Balance Scenario) -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_8px_24px_rgba(21,27,41,0.06)] p-5 border border-outline-variant/10">
+<div class="flex justify-between items-start mb-4">
+<h2 class="text-lg font-headline font-bold text-on-primary-fixed">Sunil Verma</h2>
+<span class="text-[10px] uppercase tracking-widest font-bold text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">Helper</span>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">calendar_today</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Days Worked</span>
+</div>
+<p class="text-lg font-headline font-bold">12</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">payments</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Salary</span>
+</div>
+<p class="text-lg font-headline font-bold text-secondary">₹7,200</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">account_balance_wallet</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Advance</span>
+</div>
+<p class="text-lg font-headline font-bold text-error">₹8,000</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border-l-4 border-error">
+<div class="flex items-center gap-2 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm">balance</span>
+<span class="text-[10px] font-semibold uppercase tracking-wider">Balance</span>
+</div>
+<p class="text-xl font-headline font-extrabold text-error">- ₹800</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Total Summary Bar -->
+<div class="fixed bottom-20 left-0 w-full px-6 z-30">
+<div class="bg-primary-container text-white p-6 rounded-2xl shadow-2xl flex flex-col gap-4">
+<div class="flex justify-between items-center border-b border-white/10 pb-3">
+<span class="text-[10px] font-bold uppercase tracking-widest text-on-primary-container">Aggregate Summary</span>
+<span class="bg-secondary/20 text-secondary-fixed text-[10px] px-2 py-0.5 rounded-full font-bold">LIVE DATA</span>
+</div>
+<div class="flex justify-between items-end">
+<div>
+<span class="text-[10px] text-on-primary-container block mb-1">TOTAL SALARY</span>
+<span class="text-lg font-headline font-bold">₹47,300</span>
+</div>
+<div class="text-center">
+<span class="text-[10px] text-on-primary-container block mb-1">TOTAL ADVANCE</span>
+<span class="text-lg font-headline font-bold">₹23,000</span>
+</div>
+<div class="text-right">
+<span class="text-[10px] text-on-primary-container block mb-1">NET BALANCE</span>
+<span class="text-xl font-headline font-extrabold text-secondary-fixed">₹24,300</span>
+</div>
+</div>
+</div>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-[0_-8px_24px_rgba(21,27,41,0.06)] rounded-t-[2rem]">
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-[#10B981] transition-all">
+<span class="material-symbols-outlined mb-1">dashboard</span>
+<span class="font-manrope text-[10px] font-semibold tracking-wide">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-[#10B981] transition-all">
+<span class="material-symbols-outlined mb-1">engineering</span>
+<span class="font-manrope text-[10px] font-semibold tracking-wide">Workers</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-[#10B981]/10 text-[#10B981] dark:text-emerald-400 rounded-2xl px-6 py-2 scale-90 duration-200">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">assessment</span>
+<span class="font-manrope text-[10px] font-semibold tracking-wide">Summary</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 hover:text-[#10B981] transition-all">
+<span class="material-symbols-outlined mb-1">person</span>
+<span class="font-manrope text-[10px] font-semibold tracking-wide">Profile</span>
+</div>
+</nav>
+</body></html>
