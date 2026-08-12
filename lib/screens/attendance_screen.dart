@@ -614,7 +614,8 @@ class _AttendanceRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${worker.type} • ${rupees(worker.dailyWage)}/day',
+                      // The rate for the day being marked, not today's.
+                      '${worker.type} • ${rupees(worker.wageOn(ap.selectedDateKey))}/day',
                       style: DS.bodySm.copyWith(color: DS.onSurfaceVariant),
                     ),
                   ],

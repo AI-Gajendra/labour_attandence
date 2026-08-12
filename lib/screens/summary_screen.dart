@@ -9,6 +9,7 @@ import '../providers/worker_provider.dart';
 import '../services/export_service.dart';
 import '../utils/money.dart';
 import 'main_screen.dart';
+import 'pdf_preview_screen.dart';
 import 'worker_profile_screen.dart';
 
 class SummaryScreen extends StatefulWidget {
@@ -47,17 +48,35 @@ class _SummaryScreenState extends State<SummaryScreen> {
   Future<void> _export(bool asPdf) async {
     final sp = context.read<SummaryProvider>();
     final messenger = ScaffoldMessenger.of(context);
+    final export = ExportService();
     try {
       if (asPdf) {
-        await ExportService().sharePayrollPdf(
+        // Preview first — the share sheet used to fire before anyone had seen
+        // the document.
+        final bytes = await export.buildPayrollPdf(
           month: sp.monthStr,
           rows: sp.rows,
+        );
+        if (!mounted) return;
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => PdfPreviewScreen(
+              title: 'Payroll',
+              subtitle: sp.displayMonth.toUpperCase(),
+              bytes: bytes,
+              fileName: 'payroll-${sp.monthStr}.pdf',
+              onShare: () => export.sharePdfBytes(
+                bytes: bytes,
+                fileName: 'payroll-${sp.monthStr}.pdf',
+                subject: 'Payroll ${sp.displayMonth}',
+              ),
+            ),
+          ),
         );
       } else {
-        await ExportService().sharePayrollCsv(
-          month: sp.monthStr,
-          rows: sp.rows,
-        );
+        // CSV has nothing to preview — straight to the share sheet.
+        await export.sharePayrollCsv(month: sp.monthStr, rows: sp.rows);
       }
     } catch (e) {
       messenger.showSnackBar(
@@ -440,7 +459,9 @@ class _WorkerSummaryCard extends StatelessWidget {
                       Text(row.worker.name, style: DS.titleMd),
                       const SizedBox(height: 2),
                       Text(
-                        '${row.worker.type} • ${rupees(row.worker.dailyWage)}/day',
+                        // The rate for *this month*, not today's.
+                        '${row.worker.type} • '
+                        '${rateLabel(row.ratesApplied, fallback: row.rate)}',
                         style: DS.bodySm,
                       ),
                     ],
@@ -989,7 +1010,9 @@ class _Breakdown extends StatelessWidget {
           if (row.opening != 0)
             _line('Carried from last month', rupees(row.opening)),
           _line(
-            '${formatDays(row.days)} days × ${rupees(row.worker.dailyWage)}',
+            row.hasMixedRates
+                ? '${formatDays(row.days)} days (rate changed)'
+                : '${formatDays(row.days)} days × ${rupees(row.rate)}',
             rupees(row.salary),
           ),
           _line('Advances taken', '- ${rupees(row.advances)}'),

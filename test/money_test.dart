@@ -95,4 +95,18 @@ void main() {
       expect(formatDays(0), '0');
     });
   });
+
+  group('rateLabel', () {
+    test('single rate', () {
+      expect(rateLabel([600], fallback: 999), '₹600/day');
+    });
+
+    test('no worked days falls back to the period rate', () {
+      expect(rateLabel([], fallback: 600), '₹600/day');
+    });
+
+    test('a rate change within the period shows the range', () {
+      expect(rateLabel([600, 650], fallback: 650), '₹600–₹650/day');
+    });
+  });
 }

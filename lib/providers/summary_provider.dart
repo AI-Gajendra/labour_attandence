@@ -122,6 +122,7 @@ class SummaryProvider extends ChangeNotifier {
       // The arithmetic itself lives in utils/payroll.dart so it can be unit
       // tested without Firebase.
       final rows = computeMonthlyRows(
+        month: month,
         workers: workers,
         attendance: results[0] as List<Attendance>,
         advances: results[1] as List<Advance>,

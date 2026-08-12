@@ -80,3 +80,19 @@ String rupeesPlain(int value) => value.toString();
 /// Days worked, trimmed: `22`, `22.5`.
 String formatDays(double value) =>
     value % 1 == 0 ? value.toInt().toString() : value.toStringAsFixed(1);
+
+/// Daily-rate label for a period: `₹600/day`, or `₹600–₹650/day` when the rate
+/// changed part-way through it.
+///
+/// [rates] must be ascending and distinct — the rates actually applied to worked
+/// days. [fallback] is used when no days were worked, so the card still shows
+/// what the rate *was* rather than nothing.
+///
+/// Screens showing a specific month must use this rather than
+/// `worker.dailyWage`: a July card labelled with today's rate contradicts its
+/// own salary figure, which reads as a bug even when the arithmetic is right.
+String rateLabel(List<int> rates, {required int fallback}) {
+  if (rates.isEmpty) return '${rupees(fallback)}/day';
+  if (rates.length == 1) return '${rupees(rates.single)}/day';
+  return '${rupees(rates.first)}–${rupees(rates.last)}/day';
+}

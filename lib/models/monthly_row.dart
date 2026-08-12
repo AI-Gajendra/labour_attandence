@@ -25,6 +25,18 @@ class MonthlyRow {
   final int balance;
 
   final bool isSettled;
+
+  /// Distinct daily rates that applied to worked days **in this month**,
+  /// ascending. Empty when nothing was worked.
+  ///
+  /// The month's own rate, not the worker's current one — showing today's rate
+  /// on a past month's card makes it contradict its own salary figure.
+  final List<int> ratesApplied;
+
+  /// Representative rate for the month: the single rate that applied, or the
+  /// rate in force at the start of the month when no days were worked.
+  final int rate;
+
   final List<Attendance> records;
   final List<Advance> advanceRecords;
 
@@ -37,7 +49,12 @@ class MonthlyRow {
     required this.paid,
     required this.balance,
     required this.isSettled,
+    required this.rate,
+    this.ratesApplied = const [],
     required this.records,
     required this.advanceRecords,
   });
+
+  /// True when the rate changed part-way through the month.
+  bool get hasMixedRates => ratesApplied.length > 1;
 }

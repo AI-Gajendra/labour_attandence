@@ -269,6 +269,11 @@ adding an index here in the same change.
     mistake"). "Correct a mistake" collapses history to a single all-time entry and *does* re-price
     unsettled past work — that is its purpose.
   - Rates are per *day*, so a change mid-month splits the month correctly.
+  - **Every period-scoped screen shows the rate for that period**, via
+    `MonthlyRow.rate` / `ratesApplied` and `rateLabel()`. Never label a past month with
+    `worker.dailyWage` — a July card reading "₹650/day" beside 16 days and ₹9,600 contradicts its own
+    arithmetic and reads as a bug. The worker *list* is the exception: it has no period, so it shows
+    the current rate.
 - **Balance:** `opening + salary − advances − paid`.
 - **Carry-forward:** `opening` is the running total of **every month before this one**, from
   `openingBalances()` — not just the previous month. Each prior month contributes
@@ -285,7 +290,10 @@ adding an index here in the same change.
 - **A month is closed** by writing a settlement (Payroll tab → RECORD PAYMENT). Reopening deletes it.
 - **Statements are date-range, not month-bound.** `buildWorkerStatement()` slices a worker's whole
   history between any two dates and reports full/half/absent/unmarked days, advances with their dates,
-  payments, brought-forward balance and pending amount. Shared as a PDF from the worker profile.
+  payments, brought-forward balance and pending amount.
+- **PDFs are previewed before they are shared.** Both exports open `PdfPreviewScreen` (rendered by
+  `printing`) with a SHARE button and print/save-as-PDF; nothing reaches the share sheet unseen. CSV
+  goes straight to the share sheet — there is nothing to preview.
 - **All dates are device-local.** No timezone handling; only `changedAt` uses `serverTimestamp`.
 - The calculation lives in `lib/utils/payroll.dart` as a pure function and is covered by
   `test/payroll_test.dart`. **Change it there, and add a test in the same commit.**

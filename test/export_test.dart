@@ -27,6 +27,8 @@ MonthlyRow row(
   ),
   days: days,
   opening: opening,
+  rate: wage,
+  ratesApplied: [wage],
   salary: salary,
   advances: advances,
   paid: paid,

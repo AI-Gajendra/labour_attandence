@@ -68,7 +68,7 @@ class ExportService {
         _csvRow([
           row.worker.name,
           row.worker.type,
-          rupeesPlain(row.worker.dailyWage),
+          rupeesPlain(row.rate),
           formatDays(row.days),
           rupeesPlain(row.opening),
           rupeesPlain(row.salary),
@@ -177,7 +177,9 @@ class ExportService {
                   (row) => [
                     row.worker.name,
                     row.worker.type,
-                    rupees(row.worker.dailyWage),
+                    row.hasMixedRates
+                        ? '${rupees(row.ratesApplied.first)}-${rupees(row.ratesApplied.last)}'
+                        : rupees(row.rate),
                     formatDays(row.days),
                     rupees(row.opening),
                     rupees(row.salary),
@@ -285,7 +287,7 @@ class ExportService {
           pw.Text(
             '${s.worker.name}'
             '${s.worker.type.isEmpty ? '' : ' · ${s.worker.type}'}'
-            ' · ${rupees(s.worker.dailyWage)}/day',
+            ' · ${rateLabel(s.ratesApplied, fallback: s.worker.wageOn(dateKey(s.end)))}',
             style: const pw.TextStyle(fontSize: 11),
           ),
           pw.SizedBox(height: 2),
@@ -455,20 +457,38 @@ class ExportService {
     }
   }
 
-  Future<void> shareWorkerStatementPdf(WorkerStatement s) async {
-    final bytes = await buildWorkerStatementPdf(s);
+  /// File name for a worker's statement, e.g.
+  /// `statement-ramesh-2026-08-01-to-2026-08-31.pdf`.
+  String statementFileName(WorkerStatement s) {
     final safeName = s.worker.name
         .replaceAll(RegExp(r'[^A-Za-z0-9]+'), '-')
         .toLowerCase();
-    final file = await _writeTemp(
-      'statement-$safeName-${dateKey(s.start)}-to-${dateKey(s.end)}.pdf',
-      bytes,
-    );
-    await _share(
-      file,
-      '${s.worker.name} · ${displayDayMonth(s.start)} to ${displayDayMonth(s.end)}'
-      ' · Pending ${rupees(s.pending)}',
-    );
+    return 'statement-$safeName-${dateKey(s.start)}-to-${dateKey(s.end)}.pdf';
+  }
+
+  /// One-line summary used as the share subject.
+  String statementSubject(WorkerStatement s) =>
+      '${s.worker.name} · ${displayDayMonth(s.start)} to '
+      '${displayDayMonth(s.end)} · Pending ${rupees(s.pending)}';
+
+  Future<void> shareWorkerStatementPdf(
+    WorkerStatement s, {
+    Uint8List? bytes,
+  }) async {
+    final data = bytes ?? await buildWorkerStatementPdf(s);
+    final file = await _writeTemp(statementFileName(s), data);
+    await _share(file, statementSubject(s));
+  }
+
+  /// Shares already-built PDF bytes — used by the preview screen so the
+  /// document is not regenerated just to send it.
+  Future<void> sharePdfBytes({
+    required Uint8List bytes,
+    required String fileName,
+    required String subject,
+  }) async {
+    final file = await _writeTemp(fileName, bytes);
+    await _share(file, subject);
   }
 
   // ───────────────────────────── Sharing ─────────────────────────────
@@ -485,9 +505,10 @@ class ExportService {
   Future<void> sharePayrollPdf({
     required String month,
     required List<MonthlyRow> rows,
+    Uint8List? bytes,
   }) async {
-    final bytes = await buildPayrollPdf(month: month, rows: rows);
-    final file = await _writeTemp('payroll-$month.pdf', bytes);
+    final data = bytes ?? await buildPayrollPdf(month: month, rows: rows);
+    final file = await _writeTemp('payroll-$month.pdf', data);
     await _share(file, 'Payroll $month (PDF)');
   }
 

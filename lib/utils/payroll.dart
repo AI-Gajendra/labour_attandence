@@ -104,6 +104,7 @@ Map<String, int> openingBalances({
 /// * `opening` comes from [openingBalances] — the running total of *every*
 ///   month before this one, not just the last settled one.
 List<MonthlyRow> computeMonthlyRows({
+  required String month,
   required List<Worker> workers,
   required List<Attendance> attendance,
   required List<Advance> advances,
@@ -114,6 +115,7 @@ List<MonthlyRow> computeMonthlyRows({
 
   final daysByWorker = <String, double>{};
   final earnedByWorker = <String, double>{};
+  final ratesByWorker = <String, Set<int>>{};
   final recordsByWorker = <String, List<Attendance>>{};
   for (final record in attendance) {
     daysByWorker.update(
@@ -129,6 +131,11 @@ List<MonthlyRow> computeMonthlyRows({
       (value) => value + record.dayValue * rate,
       ifAbsent: () => record.dayValue * rate,
     );
+    // Only worked days define the month's rate — an absent day says nothing
+    // about what the work was worth.
+    if (record.dayValue > 0) {
+      ratesByWorker.putIfAbsent(record.workerId, () => <int>{}).add(rate);
+    }
     recordsByWorker.putIfAbsent(record.workerId, () => []).add(record);
   }
 
@@ -154,6 +161,8 @@ List<MonthlyRow> computeMonthlyRows({
     final settlement = settlementByWorker[id];
     final paid = settlement?.paid ?? 0;
 
+    final ratesApplied = (ratesByWorker[id]?.toList() ?? <int>[])..sort();
+
     return MonthlyRow(
       worker: worker,
       days: days,
@@ -163,6 +172,12 @@ List<MonthlyRow> computeMonthlyRows({
       paid: paid,
       balance: broughtForward + salary - advanceTotal - paid,
       isSettled: settlement != null,
+      // The rate this month, not today's — falls back to the rate in force on
+      // the first of the month when nothing was worked.
+      rate: ratesApplied.length == 1
+          ? ratesApplied.single
+          : worker.wageOn('$month-01'),
+      ratesApplied: ratesApplied,
       records: recordsByWorker[id] ?? const [],
       advanceRecords: advanceRecordsByWorker[id] ?? const [],
     );

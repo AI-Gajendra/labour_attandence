@@ -13,6 +13,7 @@ import '../utils/dates.dart';
 import '../utils/money.dart';
 import '../utils/payroll.dart';
 import 'attendance_screen.dart';
+import 'pdf_preview_screen.dart';
 import 'worker_list_screen.dart';
 
 /// Per-worker history: attendance calendar, advances and the running balance.
@@ -179,7 +180,30 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
         allSettlements: _allSettlements,
       );
 
-      await ExportService().shareWorkerStatementPdf(statement);
+      final export = ExportService();
+      final bytes = await export.buildWorkerStatementPdf(statement);
+      if (!mounted) return;
+
+      // Preview before sending. A wage slip gets handed to a person and argued
+      // over — it should be read once before it leaves the phone.
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => PdfPreviewScreen(
+            title: worker.name,
+            subtitle:
+                '${displayDayMonth(statement.start).toUpperCase()} — '
+                '${displayDayMonth(statement.end).toUpperCase()}',
+            bytes: bytes,
+            fileName: export.statementFileName(statement),
+            onShare: () => export.sharePdfBytes(
+              bytes: bytes,
+              fileName: export.statementFileName(statement),
+              subject: export.statementSubject(statement),
+            ),
+          ),
+        ),
+      );
     } catch (e) {
       messenger.showSnackBar(
         SnackBar(
@@ -205,7 +229,23 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     }
 
     final days = _records.fold(0.0, (sum, r) => sum + r.dayValue);
-    final salary = roundRupees(days * worker.dailyWage);
+    // Priced per day at the rate in force then — the same walk the Payroll tab
+    // uses. Multiplying by the *current* wage made this screen disagree with
+    // the Payroll tab for any month before a rate change.
+    final salary = roundRupees(
+      _records.fold(0.0, (sum, r) => sum + r.dayValue * worker.wageOn(r.date)),
+    );
+    final ratesApplied =
+        _records
+            .where((r) => r.dayValue > 0)
+            .map((r) => worker.wageOn(r.date))
+            .toSet()
+            .toList()
+          ..sort();
+    final monthRate = ratesApplied.length == 1
+        ? ratesApplied.single
+        : worker.wageOn('${monthKey(_month)}-01');
+
     final advanceTotal = _advances.fold(0, (sum, a) => sum + a.amount);
     final paid = _settlement?.paid ?? 0;
     final balance = _opening + salary - advanceTotal - paid;
@@ -217,6 +257,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
           _ProfileHeader(
             worker: worker,
             month: _month,
+            rateText: rateLabel(ratesApplied, fallback: monthRate),
             onBack: () => Navigator.pop(context),
             onEdit: () => showWorkerForm(context, worker: worker),
             onPrevMonth: () => _changeMonth(-1),
@@ -271,7 +312,10 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                         _SalaryCard(
                           opening: _opening,
                           days: days,
-                          dailyWage: worker.dailyWage,
+                          rateText: rateLabel(
+                            ratesApplied,
+                            fallback: monthRate,
+                          ),
                           salary: salary,
                           advances: advanceTotal,
                           paid: paid,
@@ -308,6 +352,9 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
 class _ProfileHeader extends StatelessWidget {
   final Worker worker;
   final DateTime month;
+
+  /// Rate for the displayed month, not the worker's current rate.
+  final String rateText;
   final VoidCallback onBack;
   final VoidCallback onEdit;
   final VoidCallback onPrevMonth;
@@ -316,6 +363,7 @@ class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.worker,
     required this.month,
+    required this.rateText,
     required this.onBack,
     required this.onEdit,
     required this.onPrevMonth,
@@ -410,7 +458,7 @@ class _ProfileHeader extends StatelessWidget {
                           ),
                         const SizedBox(width: 10),
                         Text(
-                          '${rupees(worker.dailyWage)}/day',
+                          rateText,
                           style: TextStyle(
                             fontFamily: DS.fontHeadline,
                             fontSize: 15,
@@ -732,7 +780,7 @@ class _DayCell extends StatelessWidget {
 class _SalaryCard extends StatelessWidget {
   final int opening;
   final double days;
-  final int dailyWage;
+  final String rateText;
   final int salary;
   final int advances;
   final int paid;
@@ -742,7 +790,7 @@ class _SalaryCard extends StatelessWidget {
   const _SalaryCard({
     required this.opening,
     required this.days,
-    required this.dailyWage,
+    required this.rateText,
     required this.salary,
     required this.advances,
     required this.paid,
@@ -794,7 +842,7 @@ class _SalaryCard extends StatelessWidget {
               valueColor: opening >= 0 ? DS.onSurface : DS.error,
             ),
           _Line(label: 'Days worked', value: formatDays(days)),
-          _Line(label: 'Rate', value: '${rupees(dailyWage)}/day'),
+          _Line(label: 'Rate', value: rateText),
           _Line(label: 'Salary', value: rupees(salary)),
           _Line(
             label: 'Advances (kharchi)',

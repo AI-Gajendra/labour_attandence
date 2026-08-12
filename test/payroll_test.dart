@@ -92,6 +92,7 @@ void main() {
   group('computeMonthlyRows', () {
     test('salary is days × wage', () {
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [worker('w1', wage: 600)],
         attendance: [
           mark('w1', '2026-08-01', AttendanceStatus.present),
@@ -111,6 +112,7 @@ void main() {
 
     test('a half day at an odd wage rounds to whole rupees', () {
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [worker('w1', wage: 655)],
         attendance: [
           mark('w1', '2026-08-01', AttendanceStatus.present),
@@ -128,6 +130,7 @@ void main() {
 
     test('advances are subtracted and can push the balance negative', () {
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [worker('w1', wage: 500)],
         attendance: [mark('w1', '2026-08-01', AttendanceStatus.present)],
         advances: [
@@ -145,6 +148,7 @@ void main() {
 
     test('a worker with no records shows zeros rather than being dropped', () {
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [worker('w1'), worker('w2')],
         attendance: [mark('w1', '2026-08-01', AttendanceStatus.present)],
         advances: const [],
@@ -161,6 +165,7 @@ void main() {
 
     test('records for unknown workers do not create phantom rows', () {
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [worker('w1')],
         attendance: [mark('ghost', '2026-08-01', AttendanceStatus.present)],
         advances: [advance('ghost', 500, '2026-08-05')],
@@ -175,6 +180,7 @@ void main() {
 
     test('opening is added and a payment marks the row settled', () {
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [worker('w1', wage: 500)],
         attendance: [
           mark('w1', '2026-08-01', AttendanceStatus.present),
@@ -306,6 +312,7 @@ void main() {
       );
 
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [worker('w1', wage: 500)],
         attendance: [
           mark('w1', '2026-08-01', AttendanceStatus.present),
@@ -522,6 +529,7 @@ void main() {
       final w = raised('w1', oldWage: 600, newWage: 650, from: '2026-08-01');
 
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [w],
         attendance: [
           mark('w1', '2026-08-01', AttendanceStatus.present),
@@ -546,6 +554,7 @@ void main() {
       final w = raised('w1', oldWage: 600, newWage: 650, from: '2026-08-15');
 
       final rows = computeMonthlyRows(
+        month: '2026-08',
         workers: [w],
         attendance: [
           mark('w1', '2026-08-14', AttendanceStatus.present), // 600
@@ -597,6 +606,84 @@ void main() {
 
       expect(s.earned, 1250);
       expect(s.ratesApplied, [600, 650]);
+    });
+
+    test('a past month reports the rate that applied then, not today\'s', () {
+      // The label bug: a July card showed "₹650/day" (today's rate) next to 16
+      // days and a ₹9,600 salary, which does not multiply. The maths was right;
+      // the label contradicted it.
+      final w = raised('w1', oldWage: 600, newWage: 650, from: '2026-08-01');
+
+      final july = computeMonthlyRows(
+        month: '2026-07',
+        workers: [w],
+        attendance: [
+          mark('w1', '2026-07-01', AttendanceStatus.present),
+          mark('w1', '2026-07-02', AttendanceStatus.present),
+        ],
+        advances: const [],
+        settlements: const [],
+        opening: const {},
+      );
+
+      expect(july.single.rate, 600);
+      expect(july.single.ratesApplied, [600]);
+      expect(july.single.hasMixedRates, isFalse);
+      expect(july.single.salary, 1200);
+    });
+
+    test('a month with no worked days still reports its own rate', () {
+      final w = raised('w1', oldWage: 600, newWage: 650, from: '2026-08-01');
+
+      final june = computeMonthlyRows(
+        month: '2026-06',
+        workers: [w],
+        attendance: const [],
+        advances: const [],
+        settlements: const [],
+        opening: const {},
+      );
+
+      // Falls back to the rate in force on the first of that month.
+      expect(june.single.rate, 600);
+      expect(june.single.ratesApplied, isEmpty);
+    });
+
+    test('a month spanning a change reports both rates', () {
+      final w = raised('w1', oldWage: 600, newWage: 650, from: '2026-08-15');
+
+      final august = computeMonthlyRows(
+        month: '2026-08',
+        workers: [w],
+        attendance: [
+          mark('w1', '2026-08-14', AttendanceStatus.present),
+          mark('w1', '2026-08-15', AttendanceStatus.present),
+        ],
+        advances: const [],
+        settlements: const [],
+        opening: const {},
+      );
+
+      expect(august.single.ratesApplied, [600, 650]);
+      expect(august.single.hasMixedRates, isTrue);
+    });
+
+    test('absent days do not define the month rate', () {
+      final w = raised('w1', oldWage: 600, newWage: 650, from: '2026-08-01');
+
+      final august = computeMonthlyRows(
+        month: '2026-08',
+        workers: [w],
+        attendance: [
+          mark('w1', '2026-08-01', AttendanceStatus.absent),
+          mark('w1', '2026-08-02', AttendanceStatus.present),
+        ],
+        advances: const [],
+        settlements: const [],
+        opening: const {},
+      );
+
+      expect(august.single.ratesApplied, [650]);
     });
 
     test('a statement over one rate reports a single rate', () {
