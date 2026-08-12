@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../design_tokens.dart';
+import '../widgets/sync_banner.dart';
 import 'home_screen.dart';
 import 'worker_list_screen.dart';
 import 'advance_screen.dart';
@@ -34,9 +35,14 @@ class MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: DS.surface,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(index: _currentIndex, children: _screens),
+          ),
+          // Sits directly above the nav bar so it is visible from every tab.
+          const SyncBanner(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -54,10 +60,30 @@ class MainScreenState extends State<MainScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _NavItem(icon: Icons.home, label: 'HOME', isActive: _currentIndex == 0, onTap: () => setIndex(0)),
-              _NavItem(icon: Icons.engineering, label: 'WORKERS', isActive: _currentIndex == 1, onTap: () => setIndex(1)),
-              _NavItem(icon: Icons.receipt_long, label: 'PAYROLL', isActive: _currentIndex == 2, onTap: () => setIndex(2)),
-              _NavItem(icon: Icons.assessment, label: 'REPORTS', isActive: _currentIndex == 3, onTap: () => setIndex(3)),
+              _NavItem(
+                icon: Icons.home,
+                label: 'HOME',
+                isActive: _currentIndex == 0,
+                onTap: () => setIndex(0),
+              ),
+              _NavItem(
+                icon: Icons.engineering,
+                label: 'WORKERS',
+                isActive: _currentIndex == 1,
+                onTap: () => setIndex(1),
+              ),
+              _NavItem(
+                icon: Icons.receipt_long,
+                label: 'PAYROLL',
+                isActive: _currentIndex == 2,
+                onTap: () => setIndex(2),
+              ),
+              _NavItem(
+                icon: Icons.assessment,
+                label: 'REPORTS',
+                isActive: _currentIndex == 3,
+                onTap: () => setIndex(3),
+              ),
             ],
           ),
         ),
@@ -73,7 +99,12 @@ class _NavItem extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
 
-  const _NavItem({required this.icon, required this.label, required this.isActive, required this.onTap});
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +112,10 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: isActive ? 16 : 8, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 16 : 8,
+          vertical: 8,
+        ),
         decoration: BoxDecoration(
           color: isActive ? DS.green.withAlpha(25) : Colors.transparent,
           borderRadius: BorderRadius.circular(DS.radiusFull),
@@ -89,11 +123,7 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 24,
-              color: isActive ? DS.green : DS.outline,
-            ),
+            Icon(icon, size: 24, color: isActive ? DS.green : DS.outline),
             const SizedBox(height: 4),
             Text(
               label,

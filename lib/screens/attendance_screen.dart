@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../design_tokens.dart';
-import '../providers/worker_provider.dart';
-import '../providers/attendance_provider.dart';
+import '../models/attendance.dart';
 import '../models/worker.dart';
+import '../providers/attendance_provider.dart';
+import '../providers/worker_provider.dart';
+import '../utils/dates.dart';
+import '../utils/money.dart';
+import '../widgets/sync_banner.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -16,11 +20,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   void initState() {
     super.initState();
-    // Load attendance for today by default
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<AttendanceProvider>().loadForDate(DateTime.now());
       }
+    });
+  }
+
+  void _showErrorIfAny(AttendanceProvider ap) {
+    final error = ap.error;
+    if (error == null) return;
+    // Surface the failure instead of letting the optimistic tick lie.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error), backgroundColor: DS.error));
+      ap.clearError();
     });
   }
 
@@ -30,12 +46,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final ap = context.watch<AttendanceProvider>();
     final workers = wp.workers;
 
-    final now = ap.selectedDate;
-    final weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-    final months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    final monthStr = '${now.year}-${now.month.toString().padLeft(2, '0')}';
-    final displayDate = '${weekdays[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}, ${now.year}';
+    _showErrorIfAny(ap);
+
+    final selected = ap.selectedDate;
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
@@ -48,9 +61,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(24, 56, 24, 20),
-                decoration: const BoxDecoration(
-                  color: DS.primaryContainer,
-                ),
+                decoration: const BoxDecoration(color: DS.primaryContainer),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -58,149 +69,57 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       children: [
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
-                          child: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
+                          child: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                         const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Mark Attendance',
-                              style: TextStyle(
-                                fontFamily: DS.fontHeadline,
-                                fontSize: 22,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Mark Attendance',
+                                style: TextStyle(
+                                  fontFamily: DS.fontHeadline,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              displayDate,
-                              style: TextStyle(
-                                fontFamily: DS.fontBody,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 1.2,
-                                color: Colors.white.withAlpha(150),
+                              const SizedBox(height: 2),
+                              Text(
+                                displayFullDate(selected),
+                                style: TextStyle(
+                                  fontFamily: DS.fontBody,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 1.2,
+                                  color: Colors.white.withAlpha(150),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const Spacer(),
                         GestureDetector(
-                          onTap: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: ap.selectedDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime.now(),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: DS.green,
-                                      onPrimary: Colors.white,
-                                      surface: DS.surface,
-                                      onSurface: DS.onSurface,
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null && picked != ap.selectedDate) {
-                              ap.loadForDate(picked);
-                            }
-                          },
-                          child: const Icon(Icons.calendar_today, color: Colors.white, size: 22),
+                          onTap: () => _pickDate(context, ap),
+                          child: const Icon(
+                            Icons.calendar_today,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // Interaction Guide Pill
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(18),
-                        borderRadius: BorderRadius.circular(DS.radiusFull),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'TAP ',
-                            style: TextStyle(
-                              fontFamily: DS.fontBody,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withAlpha(180),
-                            ),
-                          ),
-                          const Text(
-                            'FULL',
-                            style: TextStyle(
-                              fontFamily: DS.fontBody,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: DS.green,
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 14,
-                            margin: const EdgeInsets.symmetric(horizontal: 10),
-                            color: Colors.white.withAlpha(60),
-                          ),
-                          Text(
-                            'HOLD ',
-                            style: TextStyle(
-                              fontFamily: DS.fontBody,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withAlpha(180),
-                            ),
-                          ),
-                          Text(
-                            'ABSENT',
-                            style: TextStyle(
-                              fontFamily: DS.fontBody,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: DS.error.withAlpha(230),
-                            ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 14,
-                            margin: const EdgeInsets.symmetric(horizontal: 10),
-                            color: Colors.white.withAlpha(60),
-                          ),
-                          Text(
-                            'SWIPE ',
-                            style: TextStyle(
-                              fontFamily: DS.fontBody,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withAlpha(180),
-                            ),
-                          ),
-                          const Text(
-                            'HALF',
-                            style: TextStyle(
-                              fontFamily: DS.fontBody,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFFF59E0B),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const _GesturePill(),
                   ],
                 ),
               ),
 
-              // ── Team Availability Card (from Provider) ──
+              // ── Team Availability Card ──
               Transform.translate(
                 offset: const Offset(0, -12),
                 child: Container(
@@ -214,43 +133,58 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 ),
               ),
 
-              // ── Worker List (from Provider) ──
+              // ── Worker List ──
               Expanded(
                 child: wp.isLoading || ap.isLoading
-                    ? const Center(child: CircularProgressIndicator(color: DS.green))
+                    ? const Center(
+                        child: CircularProgressIndicator(color: DS.green),
+                      )
                     : workers.isEmpty
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.people_outline, size: 64, color: DS.outlineVariant),
-                                const SizedBox(height: 16),
-                                Text('No workers found', style: DS.bodyMd.copyWith(color: DS.outline)),
-                                const SizedBox(height: 4),
-                                Text('Add workers first', style: DS.bodySm),
-                              ],
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.people_outline,
+                              size: 64,
+                              color: DS.outlineVariant,
                             ),
-                          )
-                        : RefreshIndicator(
-                            color: DS.green,
-                            onRefresh: () => ap.loadForDate(ap.selectedDate),
-                            child: ListView.builder(
-                              padding: EdgeInsets.fromLTRB(0, 0, 0, 100 + bottomPad),
-                              itemCount: workers.length,
-                              itemBuilder: (context, index) {
-                                return _AttendanceRow(
-                                  worker: workers[index],
-                                  date: dateStr,
-                                  month: monthStr,
-                                );
-                              },
+                            const SizedBox(height: 16),
+                            Text(
+                              'No workers found',
+                              style: DS.bodyMd.copyWith(color: DS.outline),
                             ),
+                            const SizedBox(height: 4),
+                            Text('Add workers first', style: DS.bodySm),
+                          ],
+                        ),
+                      )
+                    : RefreshIndicator(
+                        color: DS.green,
+                        onRefresh: () => ap.loadForDate(ap.selectedDate),
+                        child: ListView.builder(
+                          padding: EdgeInsets.fromLTRB(
+                            0,
+                            0,
+                            0,
+                            110 + bottomPad,
                           ),
+                          itemCount: workers.length,
+                          itemBuilder: (context, index) =>
+                              _AttendanceRow(worker: workers[index]),
+                        ),
+                      ),
               ),
+
+              const SyncBanner(),
             ],
           ),
 
-          // ── Floating Save Button ──
+          // ── Floating Done Button ──
+          //
+          // Marks are written the instant a gesture happens, so this never was
+          // a save button. It now reads "Done" and the overlay reports what
+          // actually happened rather than always claiming success.
           Positioned(
             bottom: 24 + bottomPad,
             left: 0,
@@ -259,34 +193,52 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               child: GestureDetector(
                 onTap: () async {
                   await ap.triggerSavedOverlay();
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
+                  if (context.mounted) Navigator.pop(context);
                 },
                 child: Container(
-                  width: 64,
-                  height: 64,
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
                   decoration: BoxDecoration(
                     color: DS.primaryContainer,
-                    borderRadius: BorderRadius.circular(DS.radiusXl),
+                    borderRadius: BorderRadius.circular(DS.radiusFull),
                     boxShadow: DS.cardShadow,
                   ),
-                  child: const Icon(Icons.check, color: Colors.white, size: 28),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check, color: Colors.white, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        'DONE',
+                        style: TextStyle(
+                          fontFamily: DS.fontHeadline,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
 
-          // ── Success Overlay ──
+          // ── Confirmation Overlay ──
           if (ap.showSaved)
             AnimatedOpacity(
-              opacity: ap.showSaved ? 1.0 : 0.0,
+              opacity: 1.0,
               duration: const Duration(milliseconds: 300),
               child: Container(
                 color: Colors.black.withAlpha(120),
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+                    margin: const EdgeInsets.symmetric(horizontal: 32),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 32,
+                    ),
                     decoration: BoxDecoration(
                       color: DS.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(24),
@@ -302,11 +254,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             color: DS.green.withAlpha(25),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.check_circle, color: DS.green, size: 48),
+                          child: const Icon(
+                            Icons.check_circle,
+                            color: DS.green,
+                            size: 48,
+                          ),
                         ),
                         const SizedBox(height: 20),
                         const Text(
-                          'Attendance Saved!',
+                          'Attendance Recorded',
                           style: TextStyle(
                             fontFamily: DS.fontHeadline,
                             fontSize: 22,
@@ -316,7 +272,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'All records have been updated',
+                          ap.savedMessage,
+                          textAlign: TextAlign.center,
                           style: DS.bodySm.copyWith(fontSize: 14),
                         ),
                       ],
@@ -329,15 +286,101 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       ),
     );
   }
+
+  Future<void> _pickDate(BuildContext context, AttendanceProvider ap) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: ap.selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: DS.green,
+            onPrimary: Colors.white,
+            surface: DS.surface,
+            onSurface: DS.onSurface,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && !isSameDay(picked, ap.selectedDate)) {
+      await ap.loadForDate(picked);
+    }
+  }
 }
 
-// ── Availability Card (now driven by Provider counts) ──
+// ── Gesture Guide Pill ──
+class _GesturePill extends StatelessWidget {
+  const _GesturePill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(18),
+        borderRadius: BorderRadius.circular(DS.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _pair('TAP ', 'FULL', DS.green),
+          _divider(),
+          _pair('HOLD ', 'ABSENT', DS.error.withAlpha(230)),
+          _divider(),
+          _pair('SWIPE ', 'HALF', DS.warning),
+        ],
+      ),
+    );
+  }
+
+  Widget _pair(String prefix, String value, Color color) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(
+        prefix,
+        style: TextStyle(
+          fontFamily: DS.fontBody,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: Colors.white.withAlpha(180),
+        ),
+      ),
+      Text(
+        value,
+        style: TextStyle(
+          fontFamily: DS.fontBody,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    ],
+  );
+
+  Widget _divider() => Container(
+    width: 1,
+    height: 14,
+    margin: const EdgeInsets.symmetric(horizontal: 10),
+    color: Colors.white.withAlpha(60),
+  );
+}
+
+// ── Availability Card ──
 class _AvailabilityCard extends StatelessWidget {
   final int total;
   final int marked;
   final int present;
   final int halfDay;
-  const _AvailabilityCard({required this.total, required this.marked, required this.present, this.halfDay = 0});
+
+  const _AvailabilityCard({
+    required this.total,
+    required this.marked,
+    required this.present,
+    this.halfDay = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -356,7 +399,11 @@ class _AvailabilityCard extends StatelessWidget {
         children: [
           Text(
             'TEAM AVAILABILITY',
-            style: DS.labelSm.copyWith(fontSize: 10, letterSpacing: 1.5, color: DS.onSurfaceVariant),
+            style: DS.labelSm.copyWith(
+              fontSize: 10,
+              letterSpacing: 1.5,
+              color: DS.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 8),
           Row(
@@ -368,7 +415,7 @@ class _AvailabilityCard extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: '$present',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: DS.fontHeadline,
                         fontSize: 40,
                         fontWeight: FontWeight.w800,
@@ -382,12 +429,12 @@ class _AvailabilityCard extends StatelessWidget {
                           fontFamily: DS.fontHeadline,
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFFF59E0B),
+                          color: DS.warning,
                         ),
                       ),
                     TextSpan(
                       text: '/$total',
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: DS.fontHeadline,
                         fontSize: 18,
                         fontWeight: FontWeight.w400,
@@ -398,7 +445,10 @@ class _AvailabilityCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: DS.green.withAlpha(25),
                   borderRadius: BorderRadius.circular(DS.radiusFull),
@@ -426,83 +476,78 @@ class _AvailabilityCard extends StatelessWidget {
   }
 }
 
-// ── Attendance Row (uses AttendanceProvider for state) ──
+// ── Attendance Row ──
 class _AttendanceRow extends StatelessWidget {
   final Worker worker;
-  final String date;
-  final String month;
 
-  const _AttendanceRow({
-    required this.worker,
-    required this.date,
-    required this.month,
-  });
+  const _AttendanceRow({required this.worker});
 
   @override
   Widget build(BuildContext context) {
     final ap = context.watch<AttendanceProvider>();
     final status = ap.statusOf(worker.workerId);
 
-    const Color halfDayColor = Color(0xFFF59E0B);
     Color bgColor = Colors.transparent;
     Color borderColor = Colors.transparent;
     Widget statusIcon;
 
-    if (status == 'present') {
-      bgColor = DS.green.withAlpha(12);
-      borderColor = DS.green;
-      statusIcon = Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: DS.green, borderRadius: BorderRadius.circular(DS.radiusFull)),
-        child: const Icon(Icons.check, color: Colors.white, size: 20),
-      );
-    } else if (status == 'absent') {
-      bgColor = DS.error.withAlpha(12);
-      borderColor = DS.error;
-      statusIcon = Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: DS.error, borderRadius: BorderRadius.circular(DS.radiusFull)),
-        child: const Icon(Icons.close, color: Colors.white, size: 20),
-      );
-    } else if (status == 'half_day') {
-      bgColor = halfDayColor.withAlpha(12);
-      borderColor = halfDayColor;
-      statusIcon = Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(color: halfDayColor, borderRadius: BorderRadius.circular(DS.radiusFull)),
-        child: const Center(
-          child: Text(
-            '½',
-            style: TextStyle(
-              fontFamily: DS.fontHeadline,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+    switch (status) {
+      case AttendanceStatus.present:
+        bgColor = DS.green.withAlpha(12);
+        borderColor = DS.green;
+        statusIcon = _badge(
+          DS.green,
+          const Icon(Icons.check, color: Colors.white, size: 20),
+        );
+        break;
+      case AttendanceStatus.absent:
+        bgColor = DS.error.withAlpha(12);
+        borderColor = DS.error;
+        statusIcon = _badge(
+          DS.error,
+          const Icon(Icons.close, color: Colors.white, size: 20),
+        );
+        break;
+      case AttendanceStatus.halfDay:
+        bgColor = DS.warning.withAlpha(12);
+        borderColor = DS.warning;
+        statusIcon = _badge(
+          DS.warning,
+          const Center(
+            child: Text(
+              '½',
+              style: TextStyle(
+                fontFamily: DS.fontHeadline,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
             ),
           ),
-        ),
-      );
-    } else {
-      statusIcon = Container(
-        width: 36, height: 36,
-        decoration: BoxDecoration(
-          border: Border.all(color: DS.outlineVariant, width: 2),
-          borderRadius: BorderRadius.circular(DS.radiusFull),
-        ),
-      );
+        );
+        break;
+      default:
+        statusIcon = Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            border: Border.all(color: DS.outlineVariant, width: 2),
+            borderRadius: BorderRadius.circular(DS.radiusFull),
+          ),
+        );
     }
 
     return Dismissible(
       key: ValueKey('dismiss_${worker.workerId}'),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async {
-        ap.mark(worker.workerId, date, month, 'half_day');
-        return false; // don't remove the row
+        ap.mark(worker.workerId, AttendanceStatus.halfDay);
+        return false; // keep the row in place
       },
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 24),
-        color: halfDayColor.withAlpha(25),
+        color: DS.warning.withAlpha(25),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -512,14 +557,15 @@ class _AttendanceRow extends StatelessWidget {
                 fontFamily: DS.fontHeadline,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: halfDayColor,
+                color: DS.warning,
               ),
             ),
             const SizedBox(width: 8),
             Container(
-              width: 32, height: 32,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
-                color: halfDayColor,
+                color: DS.warning,
                 borderRadius: BorderRadius.circular(DS.radiusFull),
               ),
               child: const Center(
@@ -538,12 +584,17 @@ class _AttendanceRow extends StatelessWidget {
         ),
       ),
       child: InkWell(
-        onTap: () => ap.mark(worker.workerId, date, month, 'present'),
-        onLongPress: () => ap.mark(worker.workerId, date, month, 'absent'),
+        onTap: () => ap.mark(worker.workerId, AttendanceStatus.present),
+        onLongPress: () => ap.mark(worker.workerId, AttendanceStatus.absent),
         child: Container(
           decoration: BoxDecoration(
             color: bgColor,
-            border: Border(left: BorderSide(color: borderColor, width: status != null ? 4 : 0)),
+            border: Border(
+              left: BorderSide(
+                color: borderColor,
+                width: status != null ? 4 : 0,
+              ),
+            ),
           ),
           padding: EdgeInsets.fromLTRB(status != null ? 20 : 24, 18, 24, 18),
           child: Row(
@@ -555,13 +606,15 @@ class _AttendanceRow extends StatelessWidget {
                     Text(
                       worker.name,
                       style: const TextStyle(
-                        fontFamily: DS.fontHeadline, fontSize: 18,
-                        fontWeight: FontWeight.w700, color: DS.onSurface,
+                        fontFamily: DS.fontHeadline,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: DS.onSurface,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${worker.type} • ₹${worker.dailyWage.toStringAsFixed(0)}/day',
+                      '${worker.type} • ${rupees(worker.dailyWage)}/day',
                       style: DS.bodySm.copyWith(color: DS.onSurfaceVariant),
                     ),
                   ],
@@ -574,4 +627,14 @@ class _AttendanceRow extends StatelessWidget {
       ),
     );
   }
+
+  Widget _badge(Color color, Widget child) => Container(
+    width: 36,
+    height: 36,
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(DS.radiusFull),
+    ),
+    child: child,
+  );
 }

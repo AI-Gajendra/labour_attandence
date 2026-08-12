@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  analyze-and-test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.38.7'
+          channel: stable
+          cache: true
+
+      # lib/firebase_options.dart is gitignored (it holds real project values).
+      # The placeholder example compiles fine, and no unit test initialises
+      # Firebase, so this is all CI needs.
+      - name: Stub Firebase config
+        run: cp lib/firebase_options.dart.example lib/firebase_options.dart
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Unit tests
+        run: flutter test --reporter expanded
+
+  # Integration tests are NOT run here: they need a device/emulator and either
+  # the Firebase Emulator Suite or the real project. Run them locally with
+  #   firebase emulators:start --only firestore,auth
+  #   flutter test integration_test/firestore_test.dart -d <device> \
+  #     --dart-define=USE_FIREBASE_EMULATOR=true

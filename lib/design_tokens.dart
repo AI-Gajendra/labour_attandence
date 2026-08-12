@@ -26,13 +26,34 @@ class DS {
   static const Color outlineVariant = Color(0xFFC6C6CC);
 
   // ── Accent ──
+  //
+  // Semantics (see CLAUDE.md §7): green = present/positive, error = absent/
+  // negative, warning = half day + advances, tertiary = informational/edit,
+  // reports = reporting surfaces.
   static const Color secondary = Color(0xFF006C49);
   static const Color secondaryFixed = Color(0xFF6FFBBE);
   static const Color secondaryContainer = Color(0xFF6CF8BB);
   static const Color green = Color(0xFF10B981);
+  static const Color greenDark = Color(0xFF059669);
   static const Color error = Color(0xFFBA1A1A);
   static const Color errorContainer = Color(0xFFFFDAD6);
   static const Color tertiary = Color(0xFF3980F4);
+
+  /// Half day, advances, "money going out".
+  static const Color warning = Color(0xFFF59E0B);
+
+  /// Reporting / summary surfaces.
+  static const Color reports = Color(0xFF8B5CF6);
+
+  /// Plumbing trade badge.
+  static const Color cyan = Color(0xFF06B6D4);
+
+  /// The one gradient used on primary CTAs.
+  static const LinearGradient ctaGradient = LinearGradient(
+    colors: [green, greenDark],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 
   // ── Shadows ──
   static List<BoxShadow> cardShadow = [

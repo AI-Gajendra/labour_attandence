@@ -1,8 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../design_tokens.dart';
 import '../services/passcode_service.dart';
+import 'settings_screen.dart' show PinDots, DialogKeypad;
 
-/// Lock screen that appears on app launch when passcode is enabled.
+/// Lock screen shown on launch when the passcode is enabled.
+///
+/// Adds two things the previous version lacked: a visible **lockout** after
+/// repeated failures (a 4-digit PIN has only 10 000 possibilities, so unlimited
+/// guessing made it decorative), and optional **biometric unlock** that always
+/// leaves the PIN available as a fallback.
 class PasscodeScreen extends StatefulWidget {
   final VoidCallback onUnlocked;
   const PasscodeScreen({super.key, required this.onUnlocked});
@@ -11,9 +19,18 @@ class PasscodeScreen extends StatefulWidget {
   State<PasscodeScreen> createState() => _PasscodeScreenState();
 }
 
-class _PasscodeScreenState extends State<PasscodeScreen> with SingleTickerProviderStateMixin {
+class _PasscodeScreenState extends State<PasscodeScreen>
+    with SingleTickerProviderStateMixin {
+  final PasscodeService _passcode = PasscodeService();
+
   String _pin = '';
   bool _isError = false;
+  bool _checking = false;
+  String _message = '';
+  Duration? _lockout;
+  Timer? _lockoutTimer;
+  bool _biometricEnabled = false;
+
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
 
@@ -24,23 +41,58 @@ class _PasscodeScreenState extends State<PasscodeScreen> with SingleTickerProvid
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-    _shakeAnimation = Tween<double>(begin: 0, end: 24)
-        .chain(CurveTween(curve: Curves.elasticIn))
-        .animate(_shakeController);
+    _shakeAnimation = Tween<double>(
+      begin: 0,
+      end: 24,
+    ).chain(CurveTween(curve: Curves.elasticIn)).animate(_shakeController);
     _shakeController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _shakeController.reset();
+      if (status == AnimationStatus.completed) _shakeController.reset();
+    });
+
+    _initialise();
+  }
+
+  Future<void> _initialise() async {
+    final lockout = await _passcode.currentLockout();
+    final biometric = await _passcode.isBiometricEnabled();
+    if (!mounted) return;
+    setState(() {
+      _biometricEnabled = biometric;
+      if (lockout != null) _startLockout(lockout);
+    });
+    if (biometric) _tryBiometric();
+  }
+
+  void _startLockout(Duration duration) {
+    _lockout = duration;
+    _lockoutTimer?.cancel();
+    _lockoutTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
       }
+      final remaining =
+          (_lockout ?? Duration.zero) - const Duration(seconds: 1);
+      setState(() {
+        if (remaining <= Duration.zero) {
+          _lockout = null;
+          _message = '';
+          timer.cancel();
+        } else {
+          _lockout = remaining;
+        }
+      });
     });
   }
 
-  @override
-  void dispose() {
-    _shakeController.dispose();
-    super.dispose();
+  Future<void> _tryBiometric() async {
+    final ok = await _passcode.authenticateBiometric();
+    if (ok && mounted) widget.onUnlocked();
   }
 
-  void _onDigit(String digit) async {
+  Future<void> _onDigit(String digit) async {
+    if (_checking || _lockout != null) return;
+
     if (digit == '⌫') {
       if (_pin.isNotEmpty) {
         setState(() {
@@ -57,7 +109,6 @@ class _PasscodeScreenState extends State<PasscodeScreen> with SingleTickerProvid
       });
       return;
     }
-
     if (_pin.length >= 4) return;
 
     setState(() {
@@ -65,23 +116,59 @@ class _PasscodeScreenState extends State<PasscodeScreen> with SingleTickerProvid
       _isError = false;
     });
 
-    // Auto-submit on 4 digits
-    if (_pin.length == 4) {
-      final ok = await PasscodeService().verifyPasscode(_pin);
-      if (ok) {
-        widget.onUnlocked();
-      } else {
-        setState(() {
-          _isError = true;
-          _pin = '';
-        });
-        _shakeController.forward();
-      }
+    if (_pin.length < 4) return;
+
+    // PBKDF2 verification runs off the UI isolate but still takes a moment.
+    setState(() => _checking = true);
+    final attempt = await _passcode.verifyPasscode(_pin);
+    if (!mounted) return;
+
+    if (attempt.ok) {
+      widget.onUnlocked();
+      return;
     }
+
+    setState(() {
+      _checking = false;
+      _isError = true;
+      _pin = '';
+      if (attempt.isLockedOut) {
+        _message = '';
+        _startLockout(attempt.lockedFor!);
+      } else {
+        _message = attempt.attemptsRemaining == 1
+            ? '1 attempt left before a timeout'
+            : '${attempt.attemptsRemaining} attempts left';
+      }
+    });
+    _shakeController.forward();
+  }
+
+  @override
+  void dispose() {
+    _lockoutTimer?.cancel();
+    _shakeController.dispose();
+    super.dispose();
+  }
+
+  String get _subtitle {
+    if (_lockout != null) {
+      final seconds = _lockout!.inSeconds;
+      final minutes = seconds ~/ 60;
+      final remainder = seconds % 60;
+      final time = minutes > 0 ? '${minutes}m ${remainder}s' : '${remainder}s';
+      return 'Too many attempts. Try again in $time.';
+    }
+    if (_isError) {
+      return _message.isEmpty ? 'Incorrect passcode. Try again.' : _message;
+    }
+    return 'Enter your 4-digit PIN';
   }
 
   @override
   Widget build(BuildContext context) {
+    final locked = _lockout != null;
+
     return Scaffold(
       backgroundColor: DS.primaryContainer,
       body: SafeArea(
@@ -89,23 +176,21 @@ class _PasscodeScreenState extends State<PasscodeScreen> with SingleTickerProvid
           children: [
             const Spacer(flex: 2),
 
-            // ── Lock Icon ──
             Container(
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: DS.green.withAlpha(30),
+                color: (locked ? DS.error : DS.green).withAlpha(30),
                 borderRadius: BorderRadius.circular(DS.radiusFull),
               ),
               child: Icon(
-                Icons.lock_outline,
-                color: DS.green,
+                locked ? Icons.lock_clock : Icons.lock_outline,
+                color: locked ? DS.error : DS.green,
                 size: 36,
               ),
             ),
             const SizedBox(height: 24),
 
-            // ── Title ──
             const Text(
               'Enter Passcode',
               style: TextStyle(
@@ -116,130 +201,74 @@ class _PasscodeScreenState extends State<PasscodeScreen> with SingleTickerProvid
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              _isError ? 'Incorrect passcode. Try again.' : 'Enter your 4-digit PIN',
-              style: TextStyle(
-                fontFamily: DS.fontBody,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: _isError ? const Color(0xFFFF6B6B) : Colors.white.withAlpha(150),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(
+                _subtitle,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: DS.fontBody,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: (_isError || locked)
+                      ? const Color(0xFFFF6B6B)
+                      : Colors.white.withAlpha(150),
+                ),
               ),
             ),
 
             const SizedBox(height: 40),
 
-            // ── PIN Dots ──
             AnimatedBuilder(
               animation: _shakeAnimation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(
-                    _shakeAnimation.value * (_shakeController.value < 0.5 ? 1 : -1),
-                    0,
-                  ),
-                  child: child,
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(4, (i) {
-                  final filled = i < _pin.length;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.symmetric(horizontal: 12),
-                    width: filled ? 20 : 16,
-                    height: filled ? 20 : 16,
-                    decoration: BoxDecoration(
-                      color: _isError
-                          ? const Color(0xFFFF6B6B)
-                          : filled
-                              ? DS.green
-                              : Colors.white.withAlpha(40),
-                      borderRadius: BorderRadius.circular(DS.radiusFull),
-                      border: Border.all(
-                        color: _isError
-                            ? const Color(0xFFFF6B6B)
-                            : filled
-                                ? DS.green
-                                : Colors.white.withAlpha(60),
-                        width: 2,
-                      ),
-                    ),
-                  );
-                }),
+              builder: (context, child) => Transform.translate(
+                offset: Offset(
+                  _shakeAnimation.value *
+                      (_shakeController.value < 0.5 ? 1 : -1),
+                  0,
+                ),
+                child: child,
               ),
+              child: _checking
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: DS.green,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : PinDots(filled: _pin.length, isError: _isError, size: 20),
             ),
 
             const Spacer(flex: 1),
 
-            // ── Keypad ──
-            _PasscodeKeypad(onDigit: _onDigit),
+            Opacity(
+              opacity: locked ? 0.35 : 1,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 36),
+                child: DialogKeypad(onDigit: _onDigit, keySize: 68),
+              ),
+            ),
 
-            const SizedBox(height: 32),
+            if (_biometricEnabled && !locked)
+              TextButton.icon(
+                onPressed: _tryBiometric,
+                icon: const Icon(Icons.fingerprint, color: Colors.white70),
+                label: const Text(
+                  'USE BIOMETRICS',
+                  style: TextStyle(
+                    fontFamily: DS.fontBody,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white70,
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 24),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── Keypad for Passcode ──
-class _PasscodeKeypad extends StatelessWidget {
-  final void Function(String) onDigit;
-  const _PasscodeKeypad({required this.onDigit});
-
-  @override
-  Widget build(BuildContext context) {
-    final keys = [
-      ['1', '2', '3'],
-      ['4', '5', '6'],
-      ['7', '8', '9'],
-      ['C', '0', '⌫'],
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 48),
-      child: Column(
-        children: keys.map((row) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: row.map((key) {
-                final isAction = key == 'C' || key == '⌫';
-                return GestureDetector(
-                  onTap: () => onDigit(key),
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: isAction
-                          ? Colors.white.withAlpha(10)
-                          : Colors.white.withAlpha(15),
-                      borderRadius: BorderRadius.circular(DS.radiusFull),
-                      border: Border.all(
-                        color: Colors.white.withAlpha(20),
-                        width: 1,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      key,
-                      style: TextStyle(
-                        fontFamily: DS.fontHeadline,
-                        fontSize: isAction ? 16 : 28,
-                        fontWeight: FontWeight.w600,
-                        color: isAction
-                            ? Colors.white.withAlpha(150)
-                            : Colors.white,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          );
-        }).toList(),
       ),
     );
   }

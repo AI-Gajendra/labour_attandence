@@ -15,7 +15,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.labour_attendance"
+    namespace = "com.ai.labour_attendance"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -38,11 +38,17 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.labour_attendance"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 30
+        // Matches the iOS bundle id (com.ai.labour-attendance); Android ids
+        // cannot contain hyphens. Play Store rejects anything under
+        // `com.example.*`, and changing this after release would orphan every
+        // existing install — so it is set before there is anything to orphan.
+        applicationId = "com.ai.labour_attendance"
+
+        // Android 7.0+. Was 30 (Android 11) with nothing in the code requiring
+        // it, which excluded a large share of the budget devices this app is
+        // actually used on. 24 is the floor imposed by local_auth; Firebase and
+        // flutter_secure_storage need 23.
+        minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

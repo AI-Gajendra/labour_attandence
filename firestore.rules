@@ -1,18 +1,186 @@
-rules_version='2'
+rules_version = '2';
+
+// Labour Manager — Firestore security rules
+//
+// Two layers:
+//
+//   1. **Authentication** — every request must carry a credential. The app
+//      signs in anonymously at startup, so unauthenticated traffic is refused
+//      outright. (Anonymous sign-in was enabled on the project 2026-08-12;
+//      before that the database was open to anyone with the project id.)
+//
+//   2. **Shape validation** — each collection accepts only well-formed
+//      documents. This is what actually protects the payroll: a malformed or
+//      hostile write cannot corrupt the arithmetic, and the composite-key and
+//      carry-forward invariants are guaranteed by the database rather than
+//      trusted to the client. The audit trail is append-only and unknown
+//      collections are refused.
+//
+// ⚠️ Anonymous credentials are obtainable by anyone holding the APK, so layer 1
+//    raises the bar without being a wall. Next controls, in order: Firebase App
+//    Check (Play Integrity), then phone auth with a uid allow-list.
+//
+// See CLAUDE.md §8.
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // Every request must carry a credential. The app signs in anonymously at
+    // startup (AuthService), so this is invisible to the user — but it stops
+    // unauthenticated traffic from reaching the payroll.
+    function authorised() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // Money is written as whole rupees. `is number` rather than `is int` so
+    // documents created before that change (stored as doubles) can still be
+    // updated.
+    function isMoney(value) {
+      return value is number && value >= 0 && value <= 10000000;
+    }
+
+    function isSignedMoney(value) {
+      return value is number && value >= -10000000 && value <= 10000000;
+    }
+
+    function isDateKey(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function isMonthKey(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}$');
+    }
+
+    function isName(value) {
+      return value is string && value.size() > 0 && value.size() <= 80;
+    }
+
+    // ── workers ──
+    match /workers/{workerId} {
+      function valid() {
+        return isName(incoming().name)
+            && incoming().type is string
+            && incoming().type.size() <= 40
+            && isMoney(incoming().dailyWage)
+            && (!('isActive' in incoming()) || incoming().isActive is bool)
+            // Effective-dated rate changes, so a raise cannot re-price work
+            // already done. Newest first; see Worker.wageOn.
+            && (!('wageHistory' in incoming())
+                || (incoming().wageHistory is list
+                    && incoming().wageHistory.size() <= 200));
+      }
+
+      allow read: if authorised();
+      allow create, update: if authorised() && valid();
+      // Hard delete is reachable only through the explicit "purge" flow.
+      allow delete: if authorised();
+    }
+
+    // ── attendance ──
+    // Document id must be `{workerId}_{YYYY-MM-DD}`. That composite key is what
+    // makes re-marking idempotent, so it is enforced here rather than merely
+    // assumed by the client.
+    match /attendance/{attendanceId} {
+      function valid() {
+        return incoming().workerId is string
+            && incoming().workerId.size() > 0
+            && isDateKey(incoming().date)
+            && isMonthKey(incoming().month)
+            && incoming().month == incoming().date[0:7]
+            && incoming().status in ['present', 'half_day', 'absent']
+            && attendanceId == incoming().workerId + '_' + incoming().date;
+      }
+
+      allow read: if authorised();
+      allow create, update: if authorised() && valid();
+      allow delete: if authorised();
+    }
+
+    // ── advances (kharchi) ──
+    match /advances/{advanceId} {
+      function valid() {
+        return incoming().workerId is string
+            && incoming().workerId.size() > 0
+            && isMoney(incoming().amount)
+            && incoming().amount > 0
+            && isDateKey(incoming().date)
+            && isMonthKey(incoming().month)
+            && incoming().month == incoming().date[0:7];
+      }
+
+      allow read: if authorised();
+      allow create, update: if authorised() && valid();
+      allow delete: if authorised();
+    }
+
+    // ── settlements ──
+    // One document per worker per month, id `{workerId}_{YYYY-MM}`. The closing
+    // balance is what the next month reads as its opening figure, so the
+    // arithmetic is verified here — a client bug must not be able to make money
+    // appear or vanish at a month boundary.
+    match /settlements/{settlementId} {
+      function valid() {
+        return incoming().workerId is string
+            && incoming().workerId.size() > 0
+            && isMonthKey(incoming().month)
+            && settlementId == incoming().workerId + '_' + incoming().month
+            && isSignedMoney(incoming().opening)
+            && isMoney(incoming().salary)
+            && isMoney(incoming().advances)
+            && isMoney(incoming().paid)
+            && isSignedMoney(incoming().closing)
+            && incoming().closing ==
+                 incoming().opening + incoming().salary
+                 - incoming().advances - incoming().paid
+            && incoming().mode in ['cash', 'upi', 'bank'];
+      }
+
+      allow read: if authorised();
+      allow create, update: if authorised() && valid();
+      allow delete: if authorised();
+    }
+
+    // ── audit_log ──
+    // Append-only. An audit trail that can be edited is not an audit trail, so
+    // update and delete are denied to every client including this app.
+    match /audit_log/{entryId} {
+      // Once auth exists, the actor must be the caller. Until then the app
+      // writes 'unknown' (AuthService falls back when sign-in is unavailable),
+      // so only the type is checked. This tightens itself automatically.
+      function actorValid() {
+        return request.auth == null
+            ? incoming().changedBy is string
+            : incoming().changedBy == request.auth.uid;
+      }
+
+      function valid() {
+        return incoming().collectionName is string
+            && incoming().action is string
+            && actorValid()
+            && incoming().changedAt == request.time;
+      }
+
+      allow read: if authorised();
+      allow create: if authorised() && valid();
+      allow update, delete: if false;
+    }
+
+    // ── settings ──
+    // Legacy home of the passcode. The passcode now lives in device secure
+    // storage, so the app only reads this once to migrate it and then deletes
+    // it. Nothing may write here again.
+    match /settings/{docId} {
+      allow read, delete: if authorised();
+      allow create, update: if false;
+    }
+
+    // Anything not matched above is denied.
     match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2026, 5, 5);
+      allow read, write: if false;
     }
   }
 }

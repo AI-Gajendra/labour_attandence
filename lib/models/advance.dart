@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/money.dart';
 
 class Advance {
   final String advanceId;
   final String workerId;
-  final double amount;
+
+  /// Whole rupees.
+  final int amount;
   final String date;
   final String month;
   final String createdBy;
@@ -18,14 +21,15 @@ class Advance {
   });
 
   factory Advance.fromFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+    final raw = doc.data();
+    final data = raw is Map<String, dynamic> ? raw : const <String, dynamic>{};
     return Advance(
       advanceId: doc.id,
-      workerId: data['workerId'] ?? '',
-      amount: (data['amount'] ?? 0).toDouble(),
-      date: data['date'] ?? '',
-      month: data['month'] ?? '',
-      createdBy: data['createdBy'] ?? 'admin_1',
+      workerId: (data['workerId'] as String?) ?? '',
+      amount: asRupees(data['amount']),
+      date: (data['date'] as String?) ?? '',
+      month: (data['month'] as String?) ?? '',
+      createdBy: (data['createdBy'] as String?) ?? 'admin_1',
     );
   }
 
